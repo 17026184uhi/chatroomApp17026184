@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../firebase";
-import { collection, getDocs } from "firebase/firestore";
-
-async function getChats() {
-  const snapshot = await getDocs(collection(db, "Chats"));
-  snapshot.forEach((doc) => {
-    console.log(doc.id, "=>", doc.data());
-  });
-}
+import { collection, onSnapshot, query } from "firebase/firestore";
 
 function Chatroom() {
   useEffect(() => {
-    getChats();
+    const q = query(collection(db, "Chats"));
+    const unsubscribe = onSnapshot(q, (QuerySnapshot) => {
+      QuerySnapshot.forEach((doc) => {
+        console.log(doc.id, "=>", doc.data());
+      });
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
+
   return (
     <div>
       <h1>Chatroom</h1>
