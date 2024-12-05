@@ -1,3 +1,6 @@
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { auth } from "../firebase.js";
+
 function Login() {
   return (
     <div style={{ display: "flex", flex: 1, height: "100vh" }}>
@@ -21,6 +24,14 @@ function Login() {
             color: "white",
             fontSize: 18,
             fontWeight: "bold"
+          }}
+          onClick={async () => {
+            const provider = new GoogleAuthProvider();
+            const result = await signInWithPopup(auth, provider);
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+            const token = credential.accessToken;
+            const user = result.user;
+            console.log(user);
           }}
         >
           Login with Google
