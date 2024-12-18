@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { db, auth } from "../firebase";
+import { db, auth, database } from "../firebase";
 import {
   collection,
   onSnapshot,
@@ -10,6 +10,13 @@ import {
   updateDoc
 } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import {
+  ref as rtDbRef,
+  get,
+  set,
+  onValue,
+  onDisconnect
+} from "firebase/database";
 
 function Chatroom() {
   const [text, setText] = useState("");
@@ -19,6 +26,7 @@ function Chatroom() {
   const adminList = ["iCbDz7dNpoQY9VbGnj5dHv9arXM2"]; // should be current user and the creator of the message to like should not be the current usre
 
   const storage = getStorage();
+  const dbRef = rtDbRef(database);
 
   useEffect(() => {
     setUserId(auth?.currentUser?.uid);
