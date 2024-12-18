@@ -40,13 +40,35 @@ function Chatroom() {
       });
       setLocalMessages(messages);
     });
-    const isAdmin = adminList.includes(auth?.currentUser?.uid);
-    console.log("Is current user in admin list?", isAdmin);
-    <p>current user: isAdmin</p>;
+    // const isAdmin = adminList.includes(auth?.currentUser?.uid);
+    // console.log("Is current user in admin list?", isAdmin);
+
+    if (userId) {
+      onValue(
+        rtDbRef(database, `users`),
+        async (snapshot) => {
+          const userData = snapshot.val();
+          const userIds = userData ? Object.keys(userData) : [];
+          if (!userIds.includes(userId)) {
+            await set(rtDbRef(database, `users/` + userId), {
+              online: true
+            });
+          } else {
+            await set(rtDbRef(database, `users/` + userId + `/online`), true);
+          }
+        },
+        {
+          onlyOnce: true
+        }
+      );
+      const presenceRef = rtDbRef(database, `users/` + userId + `/online`);
+      onDisconnect(presenceRef).set(false);
+    }
+
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, [userId]);
 
   return (
     <div>
@@ -133,6 +155,21 @@ function Chatroom() {
             </div>
           ))}
         </div>
+        <button
+          style={{
+            backgroundColor: "black",
+            color: "white",
+            fontWeight: "bold",
+            fontSize: 18,
+            borderWidth: 0
+          }}
+          onClick={async () => {
+            await set(rtDbRef(database, "users/" + userId + "/online"), false);
+            auth.signOut();
+          }}
+        >
+          Sign out
+        </button>
         <div style={{ display: "flex", flexDirection: "row", marginTop: 24 }}>
           <form
             style={{ display: "flex", flexDirection: "row", flex: 1 }}
@@ -175,7 +212,7 @@ function Chatroom() {
                 );
               } else {
                 console.log("it's a message without an image");
-                const message = { content, timestamp, uid, image };
+                const message = { content, timestamp, uid, image, like };
                 const docRef = await addDoc(collection(db, "Chats"), message);
               }
               setText("");
