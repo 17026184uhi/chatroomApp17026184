@@ -5,7 +5,9 @@ import {
   onSnapshot,
   query,
   addDoc,
-  orderBy
+  orderBy,
+  doc,
+  updateDoc
 } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
@@ -14,6 +16,7 @@ function Chatroom() {
   const [userId, setUserId] = useState("");
   const [localMessages, setLocalMessages] = useState([]);
   const [localImage, setLocalImage] = useState(null);
+  const adminList = ["iCbDz7dNpoQY9VbGnj5dHv9arXM2"]; // should be current user and the creator of the message to like should not be the current usre
 
   const storage = getStorage();
 
@@ -24,12 +27,14 @@ function Chatroom() {
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       let messages = [];
       querySnapshot.forEach((doc) => {
-        console.log(doc.id, "=>", doc.data());
-        messages.push(doc.data());
+        // console.log(doc.id, "=>", doc.data());
+        messages.push({ mid: doc.id, ...doc.data() }); // mid just means messageId
       });
       setLocalMessages(messages);
     });
-
+    const isAdmin = adminList.includes(auth?.currentUser?.uid);
+    console.log("Is current user in admin list?", isAdmin);
+    <p>current user: isAdmin</p>;
     return () => {
       unsubscribe();
     };
@@ -67,7 +72,12 @@ function Chatroom() {
                 style={{
                   minHeight: 52,
                   width: 600,
-                  backgroundColor: userId === localMessage.uid ? "blue" : "red",
+                  backgroundColor:
+                    userId === localMessage.uid
+                      ? "blue"
+                      : localMessage.like === true
+                      ? "yellow"
+                      : "red", // changes msg box to yellow when it's been liked
                   marginTop: 24,
                   paddingLeft: 24,
                   paddingRight: 24,
@@ -81,6 +91,36 @@ function Chatroom() {
                     src={localMessage.image}
                   />
                 )}
+                {userId !== localMessage.uid &&
+                  adminList.includes(userId) &&
+                  localMessage.like === false && (
+                    <button
+                      style={{
+                        backgroundColor: "white",
+                        color: "black",
+                        fontSize: 22,
+                        marginBottom: 24,
+                        borderWidth: 0,
+                        fontWeight: "bold",
+                        borderRadius: 8,
+                        paddingTop: 4,
+                        paddingBottom: 4,
+                        paddingLeft: 8,
+                        paddingRight: 8
+                      }}
+                      onClick={async () => {
+                        // need the doc uid
+                        const docRef = doc(db, "Chats", localMessage.mid);
+
+                        await updateDoc(docRef, {
+                          like: true
+                        });
+                        console.log("Set like to true!"); //works when we click like !
+                      }}
+                    >
+                      Like
+                    </button> // like button only appears for msgs from other people, non-admins, when have not been liked and when an image has been attached.
+                  )}
               </div>
             </div>
           ))}
@@ -94,6 +134,7 @@ function Chatroom() {
               let image = "";
               const content = text;
               const uid = userId;
+              const like = false;
               console.log("User ID = ", uid);
               if (localImage) {
                 console.log("Local image");
@@ -110,7 +151,8 @@ function Chatroom() {
                       content,
                       timestamp,
                       uid,
-                      image: firebaseUrl
+                      image: firebaseUrl,
+                      like
                     };
                     console.log(
                       "about to add the message doc with local image to db"
